@@ -9,6 +9,7 @@ import math
 from collections import OrderedDict
 from scipy import stats
 import numpy
+import matplotlib.pyplot as plt
 
 loc = 'Data/results/'
 
@@ -42,19 +43,19 @@ class Mouse:
     
 
 class RotationInterval:
-    #continguous series of wheel spins
+    # continguous series of wheel spins
 
     def __init__(self, halfTimes, image):
         self._halfTimes = []
         self._image = image
         self.viable = True
-        self._rpms = [] #instantaneous speeds in rotations per minute
-        raw_rpms = [] #prone to error, will be refined
+        self._rpms = [] # instantaneous speeds in rotations per minute
+        raw_rpms = [] # prone to error, will be refined
         for i in range(1, len(halfTimes) -1):
             raw_rpms.append(60 /  (halfTimes[i+1] - halfTimes[i-1])) 
-        #instantaneous speeds at beginning and end of rotation event
+        # instantaneous speeds at beginning and end of rotation event
         raw_rpms.insert(0, 30 /  (halfTimes[1] - halfTimes[0]))
-        raw_rpms.append(30 /  (halfTimes[-1] - halfTimes[-2])) #instantaneous speeds at beginning and end of rotation event 
+        raw_rpms.append(30 /  (halfTimes[-1] - halfTimes[-2])) # instantaneous speeds at beginning and end of rotation event 
         erratic = []
         for i in range(1, len(halfTimes) -1):
             if raw_rpms[i] > 200:
@@ -95,7 +96,7 @@ class RotationInterval:
         return self._image
 
 class PokeEvent:
-    #series of repeated pokes
+    # series of repeated pokes
 
     def __init__(self, doorStates, doorTimes, pumpTimes, pumpStates, image):
         self._doorStates = doorStates
@@ -105,7 +106,7 @@ class PokeEvent:
         self._image = image
         self._imageAppearanceTime = image.latestAppearance()
         self._image.appearances.get(self._imageAppearanceTime).addPokeEvent(self) 
-        #add this pokeEvent to the image appearance during which it occured
+        # add this pokeEvent to the image appearance during which it occured
         s, t = self.successfulPokes()
         if s == 1:
             self.latency = t[0] -  self._imageAppearanceTime
@@ -148,8 +149,8 @@ class PokeEvent:
         return len(unsuccessful), unsuccessful
 
     def totalPokesNoTimeout(self, grace=30):
-        #returns total number of pokes EXCLUDING those that are failed due to image timeout
-        ##i.e. after pump success
+        # returns total number of pokes EXCLUDING those that are failed due to image timeout
+        ## i.e. after pump success
         critical_time = None
         for p, t in zip(self._pumpStates, self._pumpTimes):
             if p is PumpStates.On:
@@ -162,8 +163,8 @@ class PokeEvent:
                 if dt <= critical_time or dt > critical_time + grace: #30 seconds grace period
                     beforeSuccessful += 1
             return int(math.ceil(beforeSuccessful / 2)) 
-            #two door states constitute a full poke
-            ##ceil necessary because only door opening documented before poke
+            # two door states constitute a full poke
+            ## ceil necessary because only door opening documented before poke
 
     def drinkTimes(self):
         drinkStart = 0
@@ -210,11 +211,17 @@ class PokeEvent:
             hits = 0
             for pe in poke_events:
                 if pe.image == ri and pe.isSuccess():
-                    hits += 1 #poke events that occured in the presence of the reward image
+                    hits += 1 # poke events that occured in the presence of the reward image
             print('Reward image appearances for {0} >> {1}'.format(ri.name, ri.numAppearances))
             print('Hits/Successful Pokes >> ', hits)
             success_rate = hits * 100.0 / ri.numAppearances if ri.numAppearances else 'N/A'
-            outputCSV.write('{0}, {1}, {2}, {3}, {4}, {5}, {6}\n'.format(ri.name, ri.numAppearances, hits, ri.numAppearances - hits, success_rate, ri.avg_latency, ri.SEM_latency))
+            outputCSV.write('{0}, {1}, {2}, {3}, {4}, {5}, {6}\n'.format(ri.name, 
+                                                                         ri.numAppearances, 
+                                                                         hits, 
+                                                                         ri.numAppearances - hits, 
+                                                                         success_rate, 
+                                                                         ri.avg_latency, 
+                                                                         ri.SEM_latency))
 
 class Appearance:
 
@@ -287,7 +294,7 @@ class Image:
 def cumulativeSuccess(poke_events):
     outcomes = [int(pe.isSuccess()) for pe in poke_events]
     print("Successful Poke Events: {0}".format(sum(outcomes)))
-    #times = [pe.startTime for pe in poke_events]
+    # times = [pe.startTime for pe in poke_events]
     cumulative_success = 0
     total = 0
     cumulative_probabilities = []
@@ -307,9 +314,9 @@ def rpmTimeLapse(rotation_intervals, hour=None):
     else:
         secondCutOffs = 0, math.inf
     rot_intervals_subset = list(filter(lambda pe: pe.startTime >= secondCutOffs[0] and pe.startTime < secondCutOffs[1], rotation_intervals))
-    #these are rotation intervals that occured within specified hour
+    # these are rotation intervals that occured within specified hour
     rot_ints_byImage = [list(g[1]) for g in groupby(sorted(rot_intervals_subset, key=lambda ri: ri.image.name), key=lambda ri: ri.image.name)]
-    #groups rotation intervals by image
+    # groups rotation intervals by image
     data = []
     for rot_ints_eachImage in rot_ints_byImage:
         allSpeeds, allTimes = [], []
@@ -326,7 +333,7 @@ def rpmTimeLapse(rotation_intervals, hour=None):
     plt.show()
 
 def setImageLatencies(poke_events, images):
-    pe_by_imageAppTime = {} #poke events per image appearance times
+    pe_by_imageAppTime = {} # poke events per image appearance times
     for pe in poke_events:
         if pe.latency is not None:
             pe_by_imageAppTime[pe.imageAppearanceTime] = pe
@@ -358,12 +365,12 @@ def pokeLatencies(poke_events, images):
 
 
 def pokesPerHour(poke_events):
-    hourlyPokes = {} #dictionary stores pokes for each hour
+    hourlyPokes = {} # dictionary stores pokes for each hour
     for pe in poke_events:
         for t, s in zip(pe.pumpTimes, pe.pumpStates): 
             if s is PumpStates.On:
-                hr = int(t / 3600) + 1 #convert t to hours, round up for nth hour
-                hourlyPokes[hr] = hourlyPokes.get(hr, 0) + 1 #increment pokes for each hour, default value of 0 supplied to initialize
+                hr = int(t / 3600) + 1 # convert t to hours, round up for nth hour
+                hourlyPokes[hr] = hourlyPokes.get(hr, 0) + 1 # increment pokes for each hour, default value of 0 supplied to initialize
     outputCSV.write('\nHour, # Successful Pokes\n')
     for k in range(1, 13):
         print("Successful pokes in hour #{0} >> {1}".format(k, hourlyPokes.get(k, 0)))
@@ -413,7 +420,7 @@ def pokeStatistics(poke_events, images, filename):
     try:
         rewardImgs.sort(key = lambda ri: float(re.findall(r"[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?",ri.name)[0])) # sort images bycontrast level
     except IndexError:
-        pass #image does not have contrast level specified
+        pass # image does not have contrast level specified
     PokeEvent.imagePerformance(poke_events, rewardImgs)
     if 'Night #1' in filename or 'Night 1' in filename:
         print('\n')
@@ -457,10 +464,10 @@ def initialize(allInput, filename, findFloat):
 if not loc.endswith('/'):
     loc += '/'
 for filename in getFileNames(loc):
-    Image.appearanceLog = OrderedDict(); #reset appearances
+    Image.appearanceLog = OrderedDict(); # reset appearances
     with open(filename, 'r') as resultFile:
         allInput = resultFile.readlines()
-    findFloat = re.compile("[+-]?([0-9]*[.])?[0-9]+") #regex to search for a number (float)
+    findFloat = re.compile("[+-]?([0-9]*[.])?[0-9]+") # regex to search for a number (float)
     wheelHalfTimes, doorStates, doorTimes, pumpStates, pumpTimes, poke_events, rotation_intervals = [], [], [], [], [], [], []
     skipLine = False
     curImgName = None
@@ -475,8 +482,8 @@ for filename in getFileNames(loc):
         print("Warning: No control Images")
         outputCSV.write("WARNING: no control images defined")
         controlImgStart = [im for im in images][0]
-    #ControlImgStart defined in case wheel or door activity is documented prior to first image appearance
-    ##documentation. This occurs rarely and is a bug in the results file generation protocol.
+    # ControlImgStart defined in case wheel or door activity is documented prior to first image appearance
+    ## documentation. This occurs rarely and is a bug in the results file generation protocol.
     
     currentImg, pokeImg, runImg, currentState = controlImgStart, controlImgStart, controlImgStart, None
 
@@ -504,17 +511,17 @@ for filename in getFileNames(loc):
                 doorStates, doorTimes, pumpTimes, pumpStates = [], [], [], []
             currentState = Activity.Running
             if 'State:' in line:
-                wheelHalfTimes.append(float(findFloat.search(line).group(0))) #appends times
+                wheelHalfTimes.append(float(findFloat.search(line).group(0))) # appends times
             if 'revolution' in line:
-                #need to skip next data point because wheel state does not actually change; it appears to be a bug
+                # need to skip next data point because wheel state does not actually change; it appears to be a bug
                 skipLine = True
-                continue #do NOT reset skipLine boolean
+                continue # do NOT reset skipLine boolean
 
         elif 'Pump' in line:
             if re.search("State: (.*), Time", line).group(1) == 'On':
                 pump_state = PumpStates.On 
-                pokeImg = currentImg #the poke event's image should be the image when the pump is on (ie reward image)
-                pokeInProgress = True #ensure parameters don't change within poke duration
+                pokeImg = currentImg # the poke event's image should be the image when the pump is on (ie reward image)
+                pokeInProgress = True # ensure parameters don't change within poke duration
             else:
                 pump_state = PumpStates.Off
                 pokeInProgress = False
@@ -526,7 +533,7 @@ for filename in getFileNames(loc):
                 endRun(wheelHalfTimes, currentImg, rotation_intervals)
                 wheelHalfTimes = []
             if currentState is not Activity.Poking and not pokeInProgress:
-                pokeImg = currentImg #record image when poke event starts
+                pokeImg = currentImg # record image when poke event starts
             currentState = Activity.Poking
             door_state = DoorStates.High if re.search("State: (.*), Time", line).group(1) == 'High' else DoorStates.Low
             doorStates.append(door_state)
@@ -548,7 +555,7 @@ for filename in getFileNames(loc):
     pokeStatistics(poke_events, images, filename)
     pokesPerHour(poke_events)
     pokeLatencies(poke_events, images)
-    outputCSV.close() #DO NOT delete this line or data may be corrupted (not just results! DATA!!)
+    outputCSV.close() # DO NOT delete this line or data may be corrupted (not just results! DATA!!)
 
 
 
