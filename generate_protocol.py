@@ -18,8 +18,7 @@ if os.name != 'posix':
     import win32api # Get name of USB drive - windows only
 import glob # Search for files in deirectory
 
-nCages = 4 # Global variable declaring number of cages
-# Shouldn't this be 6??
+nCages = 6 # Global variable declaring number of cages
 imageWidth = 1366
 imageHeight = 768
 
@@ -623,6 +622,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                     driveName, _, _, _, _ = win32api.GetVolumeInformation(str(mountDir)) # Get name of mounted dri\\]=
                 else:
                     driveName = mountDir.split('/')[-1]
+                    # print(f"driveName: {driveName}")
                 mountDir += '/'
                 if re.match(rf"^CAGE [1-{len(cageList)}][AB]$", driveName): # Check that USB has valid name
                     cageNum = driveName[-2:-1]
