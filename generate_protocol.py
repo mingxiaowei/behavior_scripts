@@ -619,7 +619,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                 mountDir = list(set(post_mount_locations) - set(pre_mount_locations))[0].mountpoint # new disk partition is where usb is mounted
                 statusLabel.config(text="USB drive found, files will be saved to: " + str(mountDir[:-1]))
                 if os.name != 'posix':
-                    driveName, _, _, _, _ = win32api.GetVolumeInformation(str(mountDir)) # Get name of mounted dri\\]=
+                    driveName, _, _, _, _ = win32api.GetVolumeInformation(str(mountDir)) # Get name of mounted drive
                 else:
                     driveName = mountDir.split('/')[-1]
                     # print(f"driveName: {driveName}")
