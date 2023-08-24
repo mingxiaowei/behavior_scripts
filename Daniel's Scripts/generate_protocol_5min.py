@@ -837,7 +837,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
             protocolString = parseProtocol()
             exportFiles(protocolString, mountDir)
         else:
-            while(killFlag.get() is not 0):
+            while(killFlag.get() != 0):
                 time.sleep(0.1)
             return
 

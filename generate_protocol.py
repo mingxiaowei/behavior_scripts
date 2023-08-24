@@ -97,7 +97,7 @@ def buildGUI():
     prevImageBarVars = {} # Last recorded state of check boxes
     imageList = ['Solid', 'Checkerboard', 'Horizontal_Stripes', 'Vertical_Stripes'] # List of images available for a protocol
     presetList = [("Day #1", 1), ("Day #2", 2), ("Day #3", 3), ("Day #4", 4), ("Contrast", 5), ("Freq", 6)] # List of available presets
-    radioList = [None]*len(presetList)  #List of radiobutton objects
+    radioList = [None]*len(presetList)  # List of radiobutton objects
     presetVar = None # Preset protocol ID
     initialPreset = 1 # Starting preset value
     statusLabel = None # This label updates the user on the status of the program and the next required step
@@ -624,7 +624,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                 else:
                     driveName = mountDir.split('/')[-1]
                 mountDir += '/'
-                if re.match(r"^CAGE [1-len(cageList)][A-B]$", driveName): #Check that USB has valid name
+                if re.match(rf"^CAGE [1-{len(cageList)}][AB]$", driveName): # Check that USB has valid name
                     cageNum = driveName[-2:-1]
 
                     if driveGroup is None:
@@ -850,7 +850,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
             protocolString = parseProtocol()
             exportFiles(protocolString, mountDir)
         else:
-            while(killFlag.get() is not 0):
+            while(killFlag.get() != 0):
                 time.sleep(0.1)
             return
 
