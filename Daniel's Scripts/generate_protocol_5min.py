@@ -306,7 +306,7 @@ def buildGUI():
             entryDict["Maximum time between wheel events (seconds): "]["var"].set(10)
             entryDict["Duration of each reward frame (seconds): "]["var"].set(entryDict["Maximum duration of reward state (seconds): "]["var"].get())
             entryDict["Pattern frequency for images: "]["var"].set(100)
-            entryDict["Total duration of the experiment (hours): "]["var"].set(5/60)
+            entryDict["Total duration of the experiment (hours): "]["var"].set(1/60)
 
             contrastDict["Number of contrast steps: "]["var"].set(8)
             contrastDict["Minimum time between contrast increments: "]["var"].set(entryDict["Maximum duration of reward state (seconds): "]["var"].get() + 1) #Set so that only one image is shown per cycle
