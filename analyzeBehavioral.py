@@ -11,7 +11,7 @@ from scipy import stats
 import numpy
 import matplotlib.pyplot as plt
 
-loc = 'Data/results/'
+loc = '../08-28-2023'
 
 class ImageTypes(Enum):
     Reward = "Reward"
@@ -444,7 +444,7 @@ def getFileNames(location):
     fileNames.sort()
     return fileNames
 
-def initialize(allInput, filename, findFloat):
+def initialize(allInput, filename, findFloat, day=0):
     images = []
     for line in allInput:
         if 'USB drive ID: ' in line:
@@ -459,10 +459,116 @@ def initialize(allInput, filename, findFloat):
             for img in line[line.find('[')+1:line.rfind(']')].split(','):
                 images.append(Image(img.strip(), ImageTypes.Reward))
         elif "Start of experiment" in line:
-            return images, "Mouse_{0}".format(mouseNum)
+            return images, "Mouse_{0}_Day_{1}".format(mouseNum, day)
 
-if not loc.endswith('/'):
-    loc += '/'
+# if not loc.endswith('/'):
+#     loc += '/'
+loc = os.path.join(os.getcwd(), loc)
+for cage_num in os.listdir(loc):
+    cage_path = os.path.join(loc, cage_num)
+    if not cage_num.startswith('Cage'):
+        continue
+    day = 1
+    # print(f'cage path is {cage_path}')
+    for filename in sorted(os.listdir(cage_path)):
+        if not filename.endswith('txt'):
+            continue
+        Image.appearanceLog = OrderedDict(); # reset appearances
+        with open(os.path.join(cage_path, filename), 'r') as resultFile:
+            print('result file is', resultFile.name)
+            allInput = resultFile.readlines()
+        findFloat = re.compile("[+-]?([0-9]*[.])?[0-9]+") # regex to search for a number (float)
+        wheelHalfTimes, doorStates, doorTimes, pumpStates, pumpTimes, poke_events, rotation_intervals = [], [], [], [], [], [], []
+        skipLine = False
+        curImgName = None
+        pokeInProgress = False
+        images, identifier = initialize(allInput, filename, findFloat, day)
+        day += 1
+        images = set(images) #convert to set to avoid accidental duplication
+        Image.images = images
+        output_name = filename.replace(filename[filename.rfind('/')+1:], identifier + '.csv')
+        outputCSV = open(os.path.join(cage_path, output_name), 'w')
+        try:
+            controlImgStart = [im for im in images if im.imageType == ImageTypes.Control][0]
+        except IndexError:
+            print("Warning: No control Images")
+            outputCSV.write("WARNING: no control images defined")
+            controlImgStart = [im for im in images][0]
+        # ControlImgStart defined in case wheel or door activity is documented prior to first image appearance
+        ## documentation. This occurs rarely and is a bug in the results file generation protocol.
+        
+        currentImg, pokeImg, runImg, currentState = controlImgStart, controlImgStart, controlImgStart, None
+
+        for line in allInput:
+
+            if 'starting' in line:
+                continue
+
+            elif 'Image' in line and 'Name:' in line:
+                newImgName = line[line.find('Name:') + 5: line.find(',')].strip()
+                if curImgName == newImgName: #this is a bug
+                    continue
+                else:
+                    curImgName = newImgName
+                currentImg = next((img for img in images if img.name == curImgName), None)
+                assert currentImg is not None, 'Unrecognized image: {0}'.format(curImgName)
+                currentImg.incrementAppearances(float(re.search("Time: (.*)", line).group(1)))
+
+            elif 'Wheel' in line:
+                if skipLine:
+                    skipLine = False
+                    continue
+                if currentState is Activity.Poking:
+                    endPoke(doorStates, doorTimes, pumpTimes, pumpStates, pokeImg, poke_events)
+                    doorStates, doorTimes, pumpTimes, pumpStates = [], [], [], []
+                currentState = Activity.Running
+                if 'State:' in line:
+                    wheelHalfTimes.append(float(findFloat.search(line).group(0))) # appends times
+                if 'revolution' in line:
+                    # need to skip next data point because wheel state does not actually change; it appears to be a bug
+                    skipLine = True
+                    continue # do NOT reset skipLine boolean
+
+            elif 'Pump' in line:
+                if re.search("State: (.*), Time", line).group(1) == 'On':
+                    pump_state = PumpStates.On 
+                    pokeImg = currentImg # the poke event's image should be the image when the pump is on (ie reward image)
+                    pokeInProgress = True # ensure parameters don't change within poke duration
+                else:
+                    pump_state = PumpStates.Off
+                    pokeInProgress = False
+                pumpStates.append(pump_state) 
+                pumpTimes.append(float(findFloat.search(line).group(0)))
+
+            elif 'Door' in line:
+                if currentState is Activity.Running:
+                    endRun(wheelHalfTimes, currentImg, rotation_intervals)
+                    wheelHalfTimes = []
+                if currentState is not Activity.Poking and not pokeInProgress:
+                    pokeImg = currentImg # record image when poke event starts
+                currentState = Activity.Poking
+                door_state = DoorStates.High if re.search("State: (.*), Time", line).group(1) == 'High' else DoorStates.Low
+                doorStates.append(door_state)
+                doorTimes.append(float(findFloat.search(line).group(0)))
+
+            skipLine = False
+        if currentState is Activity.Poking:
+            endPoke(doorStates, doorTimes, pumpTimes, pumpStates, pokeImg, poke_events)
+        else:
+            endRun(wheelHalfTimes, currentImg, rotation_intervals)
+        pruneRotationIntervals(rotation_intervals)
+
+        ######### ANALYSIS FUNCTION CALLS BEGIN HERE; DO NOT EDIT ABOVE WHEN RUNNING ANALYSIS##############
+        # cumulativeSuccess(poke_events)
+        # rpmTimeLapse(rotation_intervals)
+        # numPokes(poke_events)
+        # drinkLengths(poke_events)
+        setImageLatencies(poke_events, images)
+        pokeStatistics(poke_events, images, filename)
+        pokesPerHour(poke_events)
+        pokeLatencies(poke_events, images)
+        outputCSV.close() # DO NOT delete this line or data may be corrupted (not just results! DATA!!)
+
 for filename in getFileNames(loc):
     Image.appearanceLog = OrderedDict(); # reset appearances
     with open(filename, 'r') as resultFile:
