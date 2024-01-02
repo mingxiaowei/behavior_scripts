@@ -186,7 +186,9 @@ def buildGUI():
                     if value["var"].get() < 0:
                         statusLabel.config(text="ERROR: " + key + " cannot be a negative value.")
                         error = True
-                    if key in ["Minimum wheel revolutions for reward: ", "Maximum wheel revolutions for reward: "] and not value["var"].get().is_integer(): #These values can only be integers
+                    if key in ["Minimum wheel revolutions for reward: ", "Maximum wheel revolutions for reward: "] and \
+                        not value["var"].get().is_integer(): #These values can only be integers
+
                         statusLabel.config(text="ERROR: " + key + " must be an integer value.")
                         error = True
                 except:
@@ -194,7 +196,9 @@ def buildGUI():
                     error = True
 
             if not error:
-                if entryDict["Minimum wheel revolutions for reward: "]["var"].get() > entryDict["Maximum wheel revolutions for reward: "]["var"].get():
+                if entryDict["Minimum wheel revolutions for reward: "]["var"].get() \
+                    > entryDict["Maximum wheel revolutions for reward: "]["var"].get():
+
                     statusLabel.config(text="ERROR: minReward cannot be greater than maxReward.")
                     error = True
 
@@ -250,11 +254,11 @@ def buildGUI():
                     elif uploadButton['text'] == "Quit":
                         sys.exit()
                     else:
-                        killFlag.put(0) #Kill protocol thread
-                        while protocolThread.is_alive(): #Wait for thread to stop
+                        killFlag.put(0) # Kill protocol thread
+                        while protocolThread.is_alive(): # Wait for thread to stop
                             time.sleep(0.1)
-                        toggleGUI('normal') #restore GUI
-            try: #Try needed as button may not exist yet while GUI is being assembled
+                        toggleGUI('normal') # restore GUI
+            try: # Try needed as button may not exist yet while GUI is being assembled
                 if error:
                     uploadButton.config(state="disabled")
                 else:
@@ -276,9 +280,9 @@ def buildGUI():
         statusLabel.config(text = "Set protocol parameters and press \"Upload\"...")
         maxFreqString = str()
 
-        #Apply nonlocal defaults if preset option is selected
+        # Apply nonlocal defaults if preset option is selected
         if True:
-            #Set default image check state to solid control and checkerboard reward
+            # Set default image check state to solid control and checkerboard reward
             for key, value in imageBarDict.items():
                 cVar, rVar = value["var"]
                 if(key == "Solid"):
@@ -320,7 +324,7 @@ def buildGUI():
             entryDict["Total duration of the experiment (hours): "]["var"].set(12)
 
             contrastDict["Number of contrast steps: "]["var"].set(8)
-            contrastDict["Minimum time between contrast increments: "]["var"].set(entryDict["Maximum duration of reward state (seconds): "]["var"].get() + 1) #Set so that only one image is shown per cycle
+            contrastDict["Minimum time between contrast increments: "]["var"].set(entryDict["Maximum duration of reward state (seconds): "]["var"].get() + 1) # Set so that only one image is shown per cycle
             contrastDict["Maximum time between contrast increments: "]["var"].set(contrastDict["Minimum time between contrast increments: "]["var"].get())
             contrastDict["Minimum contrast ratio (0-100): "]["var"].set(1)
             contrastDict["Maximum contrast ratio (0-100): "]["var"].set(100)
@@ -385,7 +389,7 @@ def buildGUI():
 ##################################################################################################################
 
         contrastDict["Calculated contrast step ratio: "]["entry"].config(state='disabled')
-        testbox() #Make sure at least one image is selected
+        testbox() # Make sure at least one image is selected
 
     def toggleGUI(state):
         nonlocal radioList
@@ -407,7 +411,7 @@ def buildGUI():
             uploadButton.config(text="Cancel")
         else:
             uploadButton.config(text="Upload")
-            loadPreset() #Setup GUI to match current preset
+            loadPreset() # Setup GUI to match current preset
 
     mainWindow = Tk()
     mainWindow.title("Protocol generator...")
@@ -516,7 +520,7 @@ def buildGUI():
     # Initialize to default preset
     loadPreset()
 
-    gui.mainloop() #Blocks rest of code from executing - similar to while True with update loop
+    gui.mainloop() # Blocks rest of code from executing - similar to while True with update loop
 
 def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDict, 
                     metadataBox, statusLabel, killFlag, uploadButton, presetVar, presetList):
@@ -535,13 +539,13 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
         controlList = []
         rewardList = []
 
-        #Parse image sets
-        for key, value in imageBarDict.items(): #Count number of active control and reward images
+        # Parse image sets
+        for key, value in imageBarDict.items(): # Count number of active control and reward images
             cVar, rVar = value["var"]
             if cVar.get() == 1:
                 controlList.append(key + ".png")
             if rVar.get() == 1:
-                if frameDict["contrast"].grid_info(): #If contrast series is selected, generate a list of contrast images.
+                if frameDict["contrast"].grid_info(): # If contrast series is selected, generate a list of contrast images.
                     minContrast = contrastDict["Minimum contrast ratio (0-100): "]["var"].get()
                     maxContrast = contrastDict["Maximum contrast ratio (0-100): "]["var"].get()
                     nSteps = contrastDict["Number of contrast steps: "]["var"].get()
@@ -552,7 +556,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                         imageName = key + "-contrast_" + str(round(contrast))
                         rewardList = [imageName + ".png"] + rewardList
 
-                elif frameDict["frequency"].grid_info(): #If frequency series is selected, generate a list of frequency images.
+                elif frameDict["frequency"].grid_info(): # If frequency series is selected, generate a list of frequency images.
                     minFreq = frequencyDict["Minimum pattern frequency (2-" + str(round(imageWidth/2)) + "): "]["var"].get()
                     maxFreq = frequencyDict["Maximum pattern frequency (2-" + str(round(imageWidth/2)) + "): "]["var"].get()
                     nSteps = frequencyDict["Number of frequency steps: "]["var"].get()
@@ -566,19 +570,19 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                     rewardList.append(key + ".png")
         presetID = presetVar.get()
 
-        #Add negative control image to frequency and contrast sets
+        # Add negative control image to frequency and contrast sets
         if(presetID in (5,6)):
-            rewardList.append("SolidReward-NegativeControl.png") #Add negative control to reward list
+            rewardList.append("SolidReward-NegativeControl.png") # Add negative control to reward list
             contrastDict["Number of contrast steps: "]["var"].set(contrastDict["Number of contrast steps: "]["var"].get() + 1) #Add one to the number of reward images - needed for behavior protocol check ############################################################################################################################
             frequencyDict["Number of frequency steps: "]["var"].set(frequencyDict["Number of frequency steps: "]["var"].get() + 1)
 
-        imageList = rewardList + controlList #generate a list of all unique images used in the protocol
+        imageList = rewardList + controlList # generate a list of all unique images used in the protocol
         preset = presetVar.get()
         for k,v in presetList:
             if v == preset:
                 preset = k
 
-        #Build prtocol string
+        # Build prtocol string
         protocolString = ("Experiment preset: " + preset + "\r\n" +
                         "USB drive ID: " + driveName + "\r\n" +
                         "Control image set: " + re.sub("\'", "", str(controlList)) + "\r\n" +
@@ -590,11 +594,11 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
             for key, value in contrastDict.items():
                 protocolString += key + str(value["var"].get()) + "\r\n"
 
-        if frameDict["frequency"].grid_info(): #If frequency frame is active, add frequency data with contrast keys to protocol string - workaround for contrast specific checks in the behavior protocol
-            for (f_key, f_value), (c_key, c_value) in zip(frequencyDict.items(), contrastDict.items()): #Iterate over two dictionaries at the same time: https://stackoverflow.com/questions/20736709/how-to-iterate-over-two-dictionaries-at-once-and-get-a-result-using-values-and-k
+        if frameDict["frequency"].grid_info(): # If frequency frame is active, add frequency data with contrast keys to protocol string - workaround for contrast specific checks in the behavior protocol
+            for (f_key, f_value), (c_key, c_value) in zip(frequencyDict.items(), contrastDict.items()): # Iterate over two dictionaries at the same time: https://stackoverflow.com/questions/20736709/how-to-iterate-over-two-dictionaries-at-once-and-get-a-result-using-values-and-k
                 protocolString += c_key + str(f_value["var"].get()) + "\r\n"####################################################################################################################################################################################################################################################################
 
-        #Remove the +1 adjustment
+        # Remove the +1 adjustment
         if(presetID in (5,6)):
             contrastDict["Number of contrast steps: "]["var"].set(contrastDict["Number of contrast steps: "]["var"].get() - 1) #Add one to the number of reward images - needed for behavior protocol check ############################################################################################################################
             frequencyDict["Number of frequency steps: "]["var"].set(frequencyDict["Number of frequency steps: "]["var"].get() - 1)
@@ -615,17 +619,17 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
         mountDir = None
 
         post_mount_locations = psutil.disk_partitions()
-        pre_mount_locations = post_mount_locations #partition list prior to mounting drive
+        pre_mount_locations = post_mount_locations # partition list prior to mounting drive
         error = False
         while True:
-            if not killFlag.empty(): #Get kill flag if there is one in the queue - empty is blocking so check if there is a flag before getting
-                if killFlag.get() == 0: #If cancel button is pressed, exit thread
+            if not killFlag.empty(): # Get kill flag if there is one in the queue - empty is blocking so check if there is a flag before getting
+                if killFlag.get() == 0: # If cancel button is pressed, exit thread
                     return None
             post_mount_locations = psutil.disk_partitions()
             time.sleep(0.1)
-            #print(str(len(post_mount_locations)) + " " + str(len(pre_mount_locations)))
-            if not error and len(post_mount_locations) - len(pre_mount_locations) == 1: #If new partition is found, save file to new partition
-                mountDir = list(set(post_mount_locations) - set(pre_mount_locations))[0].mountpoint #new disk partition is where usb is mounted
+            # print(str(len(post_mount_locations)) + " " + str(len(pre_mount_locations)))
+            if not error and len(post_mount_locations) - len(pre_mount_locations) == 1: # If new partition is found, save file to new partition
+                mountDir = list(set(post_mount_locations) - set(pre_mount_locations))[0].mountpoint # new disk partition is where usb is mounted
                 statusLabel.config(text="USB drive found, files will be saved to: " + str(mountDir[:-1]))
                 if os.name != 'posix':
                     driveName, _, _, _, _ = win32api.GetVolumeInformation(str(mountDir)) #Get name of mounted dri\\]=
@@ -639,7 +643,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                         driveGroup = driveName[-1:]
                     else:
                         if driveName[-1:] == driveGroup:
-                            if driveName not in cageList: #Check that a protocol has not already been written for this cage
+                            if driveName not in cageList: # Check that a protocol has not already been written for this cage
                                 cageList[cage] = driveName
                                 statusLabel.config(text="Protocol uploaded to: " + driveName + ", insert next drive...")
                                 return mountDir
@@ -654,7 +658,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                     error = True
             elif (not error and len(post_mount_locations) - len(pre_mount_locations) == -1) or (error and  len(post_mount_locations) - len(pre_mount_locations) == 0): #If partion was removed, thumb drive was removed so reset partition list
                 statusLabel.config(text="USB drive removed, please insert USB drive...")
-                pre_mount_locations = post_mount_locations #partition list prior to mounting drive
+                pre_mount_locations = post_mount_locations # partition list prior to mounting drive
                 error = False
 
     def convertContrast(contrast):
@@ -675,7 +679,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
 
             return index
 
-        #Find the pixel value that is equal in power to the mean of the 0 and 255 powers
+        # Find the pixel value that is equal in power to the mean of the 0 and 255 powers
         maxPower = LUTdic["Power"][len(LUTdic["Power"])-1]
         minPower = LUTdic["Power"][0]
         meanPower = (maxPower + minPower)/2
@@ -683,7 +687,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
 
         meanIndex = lutSearch(0)
 
-        #Find high intensity that is 1/2 contrast above mean
+        # Find high intensity that is 1/2 contrast above mean
         halfContrast = maxContrast*(contrast/100)*0.5
         currentPowerDiff = 2*meanPower
         minPowerDiff = 2*meanPower
@@ -697,13 +701,13 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
         nonlocal contrastDict
         nonlocal frequencyDict
 
-        if mountDir is None: #If cancel button is pressed, exit thread
+        if mountDir is None: # If cancel button is pressed, exit thread
             return
         pfileName = mountDir + 'Protocol.txt'
-        with open(pfileName, 'w+') as pfile: #write protocol specs to protocol file
+        with open(pfileName, 'w+') as pfile: # write protocol specs to protocol file
             pfile.write(fileString)
 
-        #Get contrast and frequency exponentiation parameters
+        # Get contrast and frequency exponentiation parameters
         maxContrast = contrastDict["Maximum contrast ratio (0-100): "]["var"].get()
         contrastStepRatio = contrastDict["Calculated contrast step ratio: "]["var"].get()
         contrastStepCount = contrastDict["Number of contrast steps: "]["var"].get()
@@ -712,7 +716,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
         frequencyStepRatio = frequencyDict["Calculated frequency step ratio: "]["var"].get()
         frequencyStepCount = frequencyDict["Number of frequency steps: "]["var"].get()
 
-        #Generate images
+        # Generate images
         imageDir = mountDir + "images/"
         highInt = (0,255,0)
         lowInt = (0,0,0)
@@ -740,10 +744,10 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
     def importLUT():
         nonlocal cageNum
 
-        if mountDir is None: #If cancel button is pressed, exit thread
+        if mountDir is None: # If cancel button is pressed, exit thread
             return False
 
-        #Find the LUT file on the thumb drive
+        # Find the LUT file on the thumb drive
         LUTlist = glob.glob(mountDir + "Calibration LUT - 201[0-9]-[0-1][0-9]-[0-3][0-9] - Monitor [1-" + str(len(cageList)) + "].txt")
 
         if(len(LUTlist) == 0):
@@ -753,7 +757,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
             statusLabel.config(text="ERROR: There is more than one calibration LUT on this drive.")
             return False
         else:
-            #Confirm that LUTnum matches cageNum
+            # Confirm that LUTnum matches cageNum
             LUTnum = LUTlist[0][-5:-4]
 
             if cageNum == LUTnum:
@@ -761,18 +765,18 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                 with open(LUTlist[0]) as f:
                     rawLUT = f.readlines()
 
-                #Parse the LUT
+                # Parse the LUT
                 dummy = rawLUT.pop(0) #Remove the header line from the LUT
                 LUTdic = {"Color": [None]*len(rawLUT), "Power": [None]*len(rawLUT)}
                 for a in range(len(rawLUT)):
                     try:
-                        #Parse color tuple
+                        # Parse color tuple
                         color = re.search(r"^\(([0-9]{1,3}, ){2}[0-9]{1,3}\)", rawLUT[a]).group(0) #Find color tuple substring in LUT
                         color = tuple(map(int, color[1:-1].split(', '))) #Convert to tuple: https://bytes.com/topic/python/answers/45526-convert-string-tuple
                         LUTdic["Color"][a] = color
 
-                        #Parse power float
-                        #Float search string from: https://stackoverflow.com/questions/4703390/how-to-extract-a-floating-number-from-a-string
+                        # Parse power float
+                        # Float search string from: https://stackoverflow.com/questions/4703390/how-to-extract-a-floating-number-from-a-string
                         numeric_const_pattern = ',[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?,\n'
                         rx = re.compile(numeric_const_pattern, re.VERBOSE)
                         LUTdic["Power"][a] = float(rx.search(rawLUT[a]).group(0)[1:-1]) #Convert string to float
@@ -790,14 +794,14 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
         global imageWidth
         global imageHeight
 
-        #Make a solid image that has the same average power of the 255 and 0 intensities
+        # Make a solid image that has the same average power of the 255 and 0 intensities
         if mode.startswith("Solid"):
             background, foreground = convertContrast(0)
 
-        image = Image.new("RGB", (imageWidth, imageHeight), color=background) #Create and image filled with background color
-        drawObject = ImageDraw.Draw(image) #Create drawing context
+        image = Image.new("RGB", (imageWidth, imageHeight), color=background) # Create and image filled with background color
+        drawObject = ImageDraw.Draw(image) # Create drawing context
 
-        #Create checkerboard as default starting pattern
+        # Create checkerboard as default starting pattern
         squareWidth = imageWidth/(2*freq)
         squareHeight = squareWidth
 
@@ -808,47 +812,47 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
         column = 0
 
         while y0 < imageHeight:
-            y1 = round(squareHeight*(row+1)) #Calculate new position of bottom of square
-            x0 = 0 #Reset x0 position
+            y1 = round(squareHeight*(row+1)) # Calculate new position of bottom of square
+            x0 = 0 # Reset x0 position
             column = 0
-            drawSquare = not drawSquare #Shift phase of draw square to enable checkerboard pattern
+            drawSquare = not drawSquare # Shift phase of draw square to enable checkerboard pattern
             while x0 < imageWidth:
-                x1 = round(squareWidth*(column+1)) #Calculate new position of bottom of square
-                #Draw square pattern based on mode
-                if mode.startswith("Horizontal_Stripes"): #Draw horizontal lines
+                x1 = round(squareWidth*(column+1)) # Calculate new position of bottom of square
+                # Draw square pattern based on mode
+                if mode.startswith("Horizontal_Stripes"): # Draw horizontal lines
                     if(row%2 == 0):
                         drawSquare = False
                     else:
                         drawSquare = True
-                elif mode.startswith("Vertical_Stripes"): #Draw vertical lines
+                elif mode.startswith("Vertical_Stripes"): # Draw vertical lines
                     if(column%2 == 0):
                         drawSquare = False
                     else:
                         drawSquare = True
-                elif mode.startswith("Solid"): #Leave image blank - background only
+                elif mode.startswith("Solid"): # Leave image blank - background only
                     drawSquare = False
-                else: #By default, draw checkerboard pattern
+                else: # By default, draw checkerboard pattern
                     drawSquare = not drawSquare
                 if drawSquare:
                     drawObject.rectangle([x0, y0, x1, y1], fill=foreground, outline=None, width=0)
-                #print(str([x0, y0, x1, y1]))
+                # print(str([x0, y0, x1, y1]))
                 x0 = x1 #Increment x0 position
                 column += 1
 
-            y0 = y1 #Increment y0 position
-            #print(str(row) + " " + str(column) + " " + str(count))
+            y0 = y1 # Increment y0 position
+            # print(str(row) + " " + str(column) + " " + str(count))
             row += 1
         return image
 
 
     cageList = [None]*nCages
     cageNum = None
-    driveGroup = None #Whether uploading to set A or set B
-    driveName = None #Name of current USB drive
+    driveGroup = None # Whether uploading to set A or set B
+    driveName = None # Name of current USB drive
     statusLabel.config(text="Please insert USB drive...")
     imageList = None
 
-    for cage in range(len(cageList)): #Export once for each cage
+    for cage in range(len(cageList)): # Export once for each cage
         mountDir = findUSB()
         if mountDir is None:
             return
