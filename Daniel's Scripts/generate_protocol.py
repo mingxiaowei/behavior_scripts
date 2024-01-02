@@ -2,27 +2,29 @@
 #Install instructions for psutil - https://github.com/giampaolo/psutil/blob/master/INSTALL.rst
 #Follow the same instructions for pygame
 
-import os #Create directory
-import sys #Allows program to exit on completion
-import psutil #Gives access to USB drive mount events
-import time #Gives access to delays and timing
-from PIL import Image, ImageDraw #Draw images and save as PNG
-from tkinter import font, Tk, Label, Entry, Frame, Checkbutton, Text, Scrollbar, Button, DoubleVar, IntVar, Radiobutton, Canvas, Widget #GUI library
+import os # Create directory
+import sys # Allows program to exit on completion
+import psutil # Gives access to USB drive mount events
+import time # Gives access to delays and timing
+from PIL import Image, ImageDraw # Draw images and save as PNG
+from tkinter import font, Tk, Label, Entry, Frame, \
+                    Checkbutton, Text, Scrollbar, Button, DoubleVar, \
+                    IntVar, Radiobutton, Canvas, Widget # GUI library
 from tkinter.ttk import Separator
 from tkinter.constants import *
-import re #REGEX library
-import threading #Allow running the protocol generator as a separate thread to not lock the GUI
-import queue #Allow kill flag to be sent to threads
-from collections import OrderedDict #Create dictionaries where object order is preserved
+import re # REGEX library
+import threading # Allow running the protocol generator as a separate thread to not lock the GUI
+import queue # Allow kill flag to be sent to threads
+from collections import OrderedDict # Create dictionaries where object order is preserved
 if os.name != 'posix':
-    import win32api #Get name of USB drive - windows only
-import glob #Search for files in deirectory
+    import win32api # Get name of USB drive - windows only
+import glob # Search for files in deirectory
 
 nCages = 6 #Global variable declaring number of cages
 imageWidth = 1366
 imageHeight = 768
 
-#From: https://gist.github.com/novel-yet-trivial/3eddfce704db3082e38c84664fc1fdf8
+# From: https://gist.github.com/novel-yet-trivial/3eddfce704db3082e38c84664fc1fdf8
 class VerticalScrolledFrame:
     """
     A vertically scrolled Frame that can be treated like any other Frame
@@ -90,19 +92,19 @@ class VerticalScrolledFrame:
             self.canvas.yview_scroll(1, "units" )
 
 def buildGUI():
-    ####See "def loadPreset()" to change default protocol settings###
-    entryDict = {} #Values for the entry portion of the GUI - tuple - (label, var, entry)
-    imageBarDict = {} #Outputs from image select check boxes
-    prevImageBarVars = {} #Last recorded state of check boxes
-    imageList = ['Solid', 'Checkerboard', 'Horizontal_Stripes', 'Vertical_Stripes'] #List of images available for a protocol
-    presetList = [("Day #1", 1), ("Day #2", 2), ("Day #3", 3), ("Day #4", 4), ("Contrast", 5), ("Freq", 6)] #List of available presets
-    radioList = [None]*len(presetList) #List of radiobutton objects
-    presetVar = None #Preset protocol ID
-    initialPreset = 1 #Starting preset value
-    statusLabel = None #This label updates the user on the status of the program and the next required step
-    metadataBox = None #Text box object that contains the metadata
-    #entryList     #labelList
-    entryDict = OrderedDict((("Minimum wheel revolutions for reward: ", None), #Label text for the entry frame
+    #### See "def loadPreset()" to change default protocol settings###
+    entryDict = {} # Values for the entry portion of the GUI - tuple - (label, var, entry)
+    imageBarDict = {} # Outputs from image select check boxes
+    prevImageBarVars = {} # Last recorded state of check boxes
+    imageList = ['Solid', 'Checkerboard', 'Horizontal_Stripes', 'Vertical_Stripes'] # List of images available for a protocol
+    presetList = [("Day #1", 1), ("Day #2", 2), ("Day #3", 3), ("Day #4", 4), ("Contrast", 5), ("Freq", 6)] # List of available presets
+    radioList = [None]*len(presetList) # List of radiobutton objects
+    presetVar = None # Preset protocol ID
+    initialPreset = 1 # Starting preset value
+    statusLabel = None # This label updates the user on the status of the program and the next required step
+    metadataBox = None # Text box object that contains the metadata
+    # entryList     # labelList
+    entryDict = OrderedDict((("Minimum wheel revolutions for reward: ", None), # Label text for the entry frame
                              ("Maximum wheel revolutions for reward: ", None),
                              ("Maximum duration of reward state (seconds): ", None),
                              ("Duration of pump \"on\" state (seconds): ", None),
@@ -125,10 +127,10 @@ def buildGUI():
                                 ("Maximum pattern frequency (2-" + str(round(imageWidth/2)) + "): ", None),
                                 ("Calculated frequency step ratio: ", None)))
 
-    protocolThread = None #Thread object for generating protocol file and exporting it to a USB drive
-    killFlag = queue.Queue() #Queue object for passing kill flag to protocol thread from main thread
+    protocolThread = None # Thread object for generating protocol file and exporting it to a USB drive
+    killFlag = queue.Queue() # Queue object for passing kill flag to protocol thread from main thread
 
-    def testbox(): #Make sure that there is at least one reward image selected
+    def testbox(): # Make sure that there is at least one reward image selected
         nonlocal imageBarDict
         nonlocal prevImageBarVars
         nonlocal statusLabel
@@ -138,12 +140,12 @@ def buildGUI():
         cSum = 0
         error = None
 
-        if len(imageBarDict) == len(imageList): #Only check when GUI is fully populated
-            for key, value in imageBarDict.items(): #Count number of active control and reward images
+        if len(imageBarDict) == len(imageList): # Only check when GUI is fully populated
+            for key, value in imageBarDict.items(): # Count number of active control and reward images
                 cVar, rVar = value["var"]
                 rSum += rVar.get()
                 cSum += cVar.get()
-            if rSum == 0: #If no reward image is selected, restore previous state
+            if rSum == 0: # If no reward image is selected, restore previous state
                 error = 1
                 statusLabel.config(text="ERROR: There must be at least one reward image in the protocol.")
             elif rSum > 1 and frameDict["contrast"].grid_info():
@@ -153,17 +155,17 @@ def buildGUI():
                 statusLabel.config(text = "Set protocol parameters and press \"Upload\"...")
             for key, value in imageBarDict.items():
                 cVar, rVar = value["var"]
-                if len(prevImageBarVars) == len(imageBarDict): #If previous state is fully populated
+                if len(prevImageBarVars) == len(imageBarDict): # If previous state is fully populated
                     prevC, prevR = prevImageBarVars[key]
-                    if(error == 1): #If there is an error, set error back to original state
+                    if(error == 1): # If there is an error, set error back to original state
                         rVar.set(prevR)
                         cVar.set(prevC)
-                    if(error == 2): #If contrast series, have check box act as a radio button
+                    if(error == 2): # If contrast series, have check box act as a radio button
                         if(prevR):
                             rVar.set(0)
-                prevImageBarVars[key] = (cVar.get(), rVar.get()) #Update previous state to current state
+                prevImageBarVars[key] = (cVar.get(), rVar.get()) # Update previous state to current state
 
-    #Verify that all entries in the GUI are valid
+    # Verify that all entries in the GUI are valid
     def testEntry(proceed):
         nonlocal frameDict
         nonlocal entryDict
@@ -178,8 +180,8 @@ def buildGUI():
         nonlocal uploadButton
 
         error = False
-        if not None in entryDict.values(): #Only start proofreading if GUI is fully populated
-            for key, value in entryDict.items(): #Check for any negative entries
+        if not None in entryDict.values(): # Only start proofreading if GUI is fully populated
+            for key, value in entryDict.items(): # Check for any negative entries
                 try:
                     if value["var"].get() < 0:
                         statusLabel.config(text="ERROR: " + key + " cannot be a negative value.")
@@ -196,13 +198,13 @@ def buildGUI():
                     statusLabel.config(text="ERROR: minReward cannot be greater than maxReward.")
                     error = True
 
-            if frameDict["contrast"].grid_info(): #If contrast options are active, verify text boxes
-                for key, value in contrastDict.items(): #Check for any negative entries
+            if frameDict["contrast"].grid_info(): # If contrast options are active, verify text boxes
+                for key, value in contrastDict.items(): # Check for any negative entries
                     try:
                         if value["var"].get() < 0:
                             statusLabel.config(text="ERROR: " + key + " cannot be a negative value.")
                             error = True
-                        if key in "Number of contrast steps: " and not value["var"].get().is_integer(): #This values can only be integer
+                        if key in "Number of contrast steps: " and not value["var"].get().is_integer(): # This values can only be integer
                             statusLabel.config(text="ERROR: " + key + " must be an integer value.")
                             error = True
                     except:
@@ -210,10 +212,12 @@ def buildGUI():
                         error = True
 
                 if not error:
-                    if contrastDict["Maximum time between contrast increments: "]["var"].get() < contrastDict["Minimum time between contrast increments: "]["var"].get():
+                    if contrastDict["Maximum time between contrast increments: "]["var"].get() < \
+                            contrastDict["Minimum time between contrast increments: "]["var"].get():
                         statusLabel.config(text="ERROR: minTime cannot be greater than maxTime.")
                         error = True
-                    if contrastDict["Maximum contrast ratio (0-100): "]["var"].get() < contrastDict["Minimum contrast ratio (0-100): "]["var"].get():
+                    if contrastDict["Maximum contrast ratio (0-100): "]["var"].get() < \
+                            contrastDict["Minimum contrast ratio (0-100): "]["var"].get():
                         statusLabel.config(text="ERROR: minContrast cannot be greater than maxContrast.")
                         error = True
                     if contrastDict["Maximum contrast ratio (0-100): "]["var"].get() > 100:
@@ -222,7 +226,10 @@ def buildGUI():
                     if contrastDict["Number of contrast steps: "]["var"].get() < 2:
                         statusLabel.config(text="ERROR: There must be at least two contrast steps.")
                         error = True
-                    contrastDict["Calculated contrast step ratio: "]["var"].set((contrastDict["Minimum contrast ratio (0-100): "]["var"].get()/contrastDict["Maximum contrast ratio (0-100): "]["var"].get())**(1/(contrastDict["Number of contrast steps: "]["var"].get()-1)))
+                    contrastDict["Calculated contrast step ratio: "]["var"].set(
+                        (contrastDict["Minimum contrast ratio (0-100): "]["var"].get() \
+                            / contrastDict["Maximum contrast ratio (0-100): "]["var"].get()) \
+                                ** (1/(contrastDict["Number of contrast steps: "]["var"].get()-1)))
 
 
             if not error and statusLabel is not None:
@@ -230,12 +237,16 @@ def buildGUI():
 
                 if proceed:
                     if uploadButton['text'] == "Upload":
-                        #Run the protocol generator as a separate thread from the GUI so that the GUI doesn't lock up
+                        # Run the protocol generator as a separate thread from the GUI so that the GUI doesn't lock up
                         killFlag.put(1)
-                        protocolThread = threading.Thread(target=uploadProtocol, args=(frameDict, entryDict, contrastDict, frequencyDict, imageBarDict, metadataBox, statusLabel, killFlag, uploadButton, presetVar, presetList))
+                        protocolThread = threading.Thread(
+                            target=uploadProtocol, 
+                            args=(frameDict, entryDict, contrastDict, frequencyDict, 
+                                    imageBarDict, metadataBox, statusLabel, killFlag, 
+                                    uploadButton, presetVar, presetList))
                         toggleGUI('disabled')
                         protocolThread.start()
-                        #protocolThread.join()
+                        # protocolThread.join()
                     elif uploadButton['text'] == "Quit":
                         sys.exit()
                     else:
@@ -244,7 +255,7 @@ def buildGUI():
                             time.sleep(0.1)
                         toggleGUI('normal') #restore GUI
             try: #Try needed as button may not exist yet while GUI is being assembled
-                if(error):
+                if error:
                     uploadButton.config(state="disabled")
                 else:
                     uploadButton.config(state="normal")
@@ -280,7 +291,7 @@ def buildGUI():
                     rVar.set(0)
                     cVar.set(0)
 
-            #Inactivate entry boxes and check boxes
+            # Inactivate entry boxes and check boxes
             for key, value in entryDict.items():
                 value["entry"].config(state='disabled')
             for key, value in contrastDict.items():
@@ -294,7 +305,7 @@ def buildGUI():
                 cChk.config(state='disabled')
                 rChk.config(state='disabled')
 
-            #Hide contrast controls
+            # Hide contrast controls
             frameDict["contrast"].grid_remove()
             frameDict["frequency"].grid_remove()
 
@@ -325,24 +336,24 @@ def buildGUI():
             metadataBox.delete('1.0', END)
             metadataBox.insert(END, "Type metadata here...")
 
-            #On days 1 and 2, reward never times out
+            # On days 1 and 2, reward never times out
             if presetID <= 2:
                 entryDict["Maximum duration of reward state (seconds): "]["var"].set(entryDict["Total duration of the experiment (hours): "]["var"].get()*60*60)
                 entryDict["Maximum time between wheel events (seconds): "]["var"].set(entryDict["Total duration of the experiment (hours): "]["var"].get()*60*60)
                 entryDict["Duration of each reward frame (seconds): "]["var"].set(entryDict["Total duration of the experiment (hours): "]["var"].get()*60*60)
                 entryDict["Duration of pump \"on\" state (seconds): "]["var"].set(3)
 
-                #Day 1 - Always show reward image and leave reward active - no wheel trigger needed
+                # Day 1 - Always show reward image and leave reward active - no wheel trigger needed
                 if presetID == 1:
                     #Set image checkbox
                     cVar, rVar = imageBarDict["Solid"]["var"]
                     cVar.set(0)
 
-                    #Change any defaults
+                    # Change any defaults
                     entryDict["Minimum wheel revolutions for reward: "]["var"].set(0)
                     entryDict["Maximum wheel revolutions for reward: "]["var"].set(0)
 
-            #On days 2 and 3 the number of wheel revolutions for a reward is constant
+            # On days 2 and 3 the number of wheel revolutions for a reward is constant
             if presetID >= 2 and presetID <= 3:
                 entryDict["Minimum wheel revolutions for reward: "]["var"].set(25)
                 entryDict["Maximum wheel revolutions for reward: "]["var"].set(entryDict["Minimum wheel revolutions for reward: "]["var"].get())
@@ -350,7 +361,7 @@ def buildGUI():
             if presetID == 3:
                 entryDict["Maximum duration of reward state (seconds): "]["var"].set(30)
 
-            #If Test is selected, show contrast controls, and reduce wheel reset time
+            # If Test is selected, show contrast controls, and reduce wheel reset time
 
             if presetID == 5:
                 entryDict["Maximum time between wheel events (seconds): "]["var"].set(5)
@@ -367,7 +378,7 @@ def buildGUI():
                 metadataBox.delete('1.0', END)
                 metadataBox.insert(END, "Default contrast: " + str(contrastDict["Maximum contrast ratio (0-100): "]["var"].get()))
 
-            #Day 4 - Same as day 3, but control and reward intervals are randomized - default protocol
+            # Day 4 - Same as day 3, but control and reward intervals are randomized - default protocol
             else:
                 pass
 
@@ -381,7 +392,7 @@ def buildGUI():
         nonlocal entryDict
         nonlocal imageBarDict
 
-        #Inactivate entry boxes, radio buttons, and check boxes
+        # Inactivate entry boxes, radio buttons, and check boxes
         for key, value in entryDict.items():
             value["entry"].config(state=state)
         for key, value in imageBarDict.items():
@@ -391,7 +402,7 @@ def buildGUI():
         for b in radioList:
             b.config(state=state)
 
-        #Switch button state
+        # Switch button state
         if state == 'disabled':
             uploadButton.config(text="Cancel")
         else:
@@ -403,22 +414,22 @@ def buildGUI():
     gui = VerticalScrolledFrame(mainWindow, width=470, height=740)
     gui.pack(fill=BOTH, expand=True)
 
-    #Initialize frame set
+    # Initialize frame set
     gui.grid_columnconfigure(0, weight=1)
     frameList = ["entry", "contrast", "frequency", "check", "radio", "metadata", "button"]
     frameDict = {}
     for row in range(len(frameList)):
         frameDict[frameList[row]] = Frame(master=gui)
         frameDict[frameList[row]].grid(column=0, row=row, sticky=W+E)
-    #frameDict["button"].grid(sticky=W+E) #Stretch button frame to width of window
+    # frameDict["button"].grid(sticky=W+E) #Stretch button frame to width of window
     frameDict["contrast"].grid_remove() #Hide contrast panel on GUI initialization
 
-    #Set default font to 12
+    # Set default font to 12
     default_font = font.nametofont("TkDefaultFont")
     default_font.configure(size=12)
     gui.option_add("*Font", default_font)
 
-    #Create set of entry boxes for entering in protocol
+    # Create set of entry boxes for entering in protocol
     frameDict["entry"].grid_columnconfigure(0, weight=1)
     rowList = list(entryDict.keys())
     for key, value in entryDict.items():
@@ -430,7 +441,7 @@ def buildGUI():
         entryDict[key] = {"label": label, "var": var, "entry": entry}
     Separator(frameDict["entry"], orient=HORIZONTAL).grid(row=len(entryDict), columnspan=5, sticky="ew")
 
-    #Create set of entry boxes for entering in contrast protocol
+    # Create set of entry boxes for entering in contrast protocol
     frameDict["contrast"].grid_columnconfigure(0, weight=1)
     rowList = list(contrastDict.keys())
     for key, value in contrastDict.items():
@@ -442,7 +453,7 @@ def buildGUI():
         contrastDict[key] = {"label": label, "var": var, "entry": entry}
     Separator(frameDict["contrast"], orient=HORIZONTAL).grid(row=len(contrastDict), columnspan=5, sticky="ew")
 
-    #Create set of entry boxes for entering in frequency protocol
+    # Create set of entry boxes for entering in frequency protocol
     frameDict["frequency"].grid_columnconfigure(0, weight=1)
     rowList = list(frequencyDict.keys())
     for key, value in frequencyDict.items():
@@ -455,7 +466,7 @@ def buildGUI():
     Separator(frameDict["frequency"], orient=HORIZONTAL).grid(row=len(frequencyDict), columnspan=5, sticky="ew")
 
 
-    #Create pair of check box bars to select preset images for control and reward
+    # Create pair of check box bars to select preset images for control and reward
     row = rowList.index(key)+1
     controlImageLabel = Label(frameDict["check"], text = "Control images(s): ", anchor=W)
     controlImageLabel.grid(column=0, row=row, sticky=W, padx=(0,150))
@@ -475,7 +486,7 @@ def buildGUI():
         imageBarDict[a] = {"var": (cVar, rVar), "chk": (cChk, rChk)}
         row += 1
 
-    #Create preset radio buttons
+    # Create preset radio buttons
     presetLabel = Label(frameDict["radio"], text = "Select protocol preset: ")
     presetLabel.pack(side=TOP, anchor=W)
     presetVar = IntVar()
@@ -487,7 +498,7 @@ def buildGUI():
         radioList[a] = b
         a += 1
 
-    #Add text box with scroll bar for entering any metadata
+    # Add text box with scroll bar for entering any metadata
     metadataBox = Text(frameDict["metadata"], height=4, width=47)
     metadataBox.pack(side=LEFT, padx=5, pady=5)
     metadataBox.insert(END, "Type metadata here...")
@@ -496,18 +507,19 @@ def buildGUI():
     textScroll.config(command=metadataBox.yview)
     metadataBox.config(yscrollcommand=textScroll.set)
 
-    #Add upload button
+    # Add upload button
     uploadButton = Button(frameDict["button"], text="Upload", command=lambda: testEntry(True)) #On click, check entries and upload if valid
     uploadButton.pack(side=RIGHT, anchor=E, padx=10, pady=10)
     statusLabel = Label(frameDict["button"], text = "Set protocol parameters and press \"Upload\"...")
     statusLabel.pack(side=LEFT, anchor=W)
 
-    #Initialize to default preset
+    # Initialize to default preset
     loadPreset()
 
     gui.mainloop() #Blocks rest of code from executing - similar to while True with update loop
 
-def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDict, metadataBox, statusLabel, killFlag, uploadButton, presetVar, presetList):
+def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDict, 
+                    metadataBox, statusLabel, killFlag, uploadButton, presetVar, presetList):
     global nCages
 
     def parseProtocol():
