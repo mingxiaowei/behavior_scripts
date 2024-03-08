@@ -313,7 +313,7 @@ def buildGUI():
             frameDict["contrast"].grid_remove()
             frameDict["frequency"].grid_remove()
 
- ############################DEFAULT PROTOCOLS##########################################################################################
+ ############################ DEFAULT PROTOCOLS ##########################################################################################
             entryDict["Minimum wheel revolutions for reward: "]["var"].set(10)
             entryDict["Maximum wheel revolutions for reward: "]["var"].set(50)
             entryDict["Maximum duration of reward state (seconds): "]["var"].set(10)
@@ -861,7 +861,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
             protocolString = parseProtocol()
             exportFiles(protocolString, mountDir)
         else:
-            while(killFlag.get() is not 0):
+            while(killFlag.get() != 0):
                 time.sleep(0.1)
             return
 
