@@ -92,13 +92,13 @@ class VerticalScrolledFrame:
             self.canvas.yview_scroll(1, "units" )
 
 def buildGUI():
-    #### See "def loadPreset()" to change default protocol settings###
+    #### See "def loadPreset()" to change default protocol settings ###
     entryDict = {} # Values for the entry portion of the GUI - tuple - (label, var, entry)
     imageBarDict = {} # Outputs from image select check boxes
     prevImageBarVars = {} # Last recorded state of check boxes
     imageList = ['Solid', 'Checkerboard', 'Horizontal_Stripes', 'Vertical_Stripes'] # List of images available for a protocol
     presetList = [("Day #1", 1), ("Day #2", 2), ("Day #3", 3), ("Day #4", 4), ("Contrast", 5), ("Freq", 6)] # List of available presets
-    radioList = [None]*len(presetList) # List of radiobutton objects
+    radioList = [None] * len(presetList) # List of radiobutton objects
     presetVar = None # Preset protocol ID
     initialPreset = 1 # Starting preset value
     statusLabel = None # This label updates the user on the status of the program and the next required step
@@ -310,8 +310,8 @@ def buildGUI():
                 rChk.config(state='disabled')
 
             # Hide contrast controls
-            frameDict["contrast"].grid_remove()
-            frameDict["frequency"].grid_remove()
+            # frameDict["contrast"].grid_remove()
+            # frameDict["frequency"].grid_remove()
 
  ############################ DEFAULT PROTOCOLS ##########################################################################################
             entryDict["Minimum wheel revolutions for reward: "]["var"].set(10)
@@ -369,7 +369,7 @@ def buildGUI():
 
             if presetID == 5:
                 entryDict["Maximum time between wheel events (seconds): "]["var"].set(5)
-                frameDict["contrast"].grid()
+                # frameDict["contrast"].grid()
                 entryDict["Maximum wheel revolutions for reward: "]["var"].set(25)
                 metadataBox.delete('1.0', END)
                 metadataBox.insert(END, "Default frequency: " + str(entryDict["Pattern frequency for images: "]["var"].get()))
@@ -377,7 +377,7 @@ def buildGUI():
             if presetID == 6:
                 contrastDict["Maximum contrast ratio (0-100): "]["var"].set(32)
                 entryDict["Maximum time between wheel events (seconds): "]["var"].set(5)
-                frameDict["frequency"].grid()
+                # frameDict["frequency"].grid()
                 entryDict["Maximum wheel revolutions for reward: "]["var"].set(25)
                 metadataBox.delete('1.0', END)
                 metadataBox.insert(END, "Default contrast: " + str(contrastDict["Maximum contrast ratio (0-100): "]["var"].get()))
@@ -512,13 +512,16 @@ def buildGUI():
     metadataBox.config(yscrollcommand=textScroll.set)
 
     # Add upload button
-    uploadButton = Button(frameDict["button"], text="Upload", command=lambda: testEntry(True)) #On click, check entries and upload if valid
+    uploadButton = Button(frameDict["button"], text="Upload", command=lambda: testEntry(True)) # On click, check entries and upload if valid
     uploadButton.pack(side=RIGHT, anchor=E, padx=10, pady=10)
     statusLabel = Label(frameDict["button"], text = "Set protocol parameters and press \"Upload\"...")
     statusLabel.pack(side=LEFT, anchor=W)
 
     # Initialize to default preset
     loadPreset()
+
+    # Display constrast settings
+    frameDict["contrast"].grid()
 
     gui.mainloop() # Blocks rest of code from executing - similar to while True with update loop
 
