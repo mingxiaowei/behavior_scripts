@@ -24,6 +24,8 @@ nCages = 6 #Global variable declaring number of cages
 imageWidth = 1366
 imageHeight = 768
 
+allow_protocol_edit = True
+
 # From: https://gist.github.com/novel-yet-trivial/3eddfce704db3082e38c84664fc1fdf8
 class VerticalScrolledFrame:
     """
@@ -295,19 +297,20 @@ def buildGUI():
                     rVar.set(0)
                     cVar.set(0)
 
-            # Inactivate entry boxes and check boxes
-            for key, value in entryDict.items():
-                value["entry"].config(state='disabled')
-            for key, value in contrastDict.items():
-                value["entry"].config(state='disabled')
-            for key, value in frequencyDict.items():
-                value["entry"].config(state='disabled')
-            for key, value in contrastDict.items():
-                value["entry"].config(state='disabled')
-            for key, value in imageBarDict.items():
-                cChk, rChk = value["chk"]
-                cChk.config(state='disabled')
-                rChk.config(state='disabled')
+            if not allow_protocol_edit:
+                # Inactivate entry boxes and check boxes
+                for key, value in entryDict.items():
+                    value["entry"].config(state='disabled')
+                for key, value in contrastDict.items():
+                    value["entry"].config(state='disabled')
+                for key, value in frequencyDict.items():
+                    value["entry"].config(state='disabled')
+                for key, value in contrastDict.items():
+                    value["entry"].config(state='disabled')
+                for key, value in imageBarDict.items():
+                    cChk, rChk = value["chk"]
+                    cChk.config(state='disabled')
+                    rChk.config(state='disabled')
 
             # Hide contrast controls
             # frameDict["contrast"].grid_remove()
