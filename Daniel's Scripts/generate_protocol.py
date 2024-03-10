@@ -120,7 +120,9 @@ def buildGUI():
                                 ("Maximum time between contrast increments: ", None),
                                 ("Minimum contrast ratio (0-100): ", None),
                                 ("Maximum contrast ratio (0-100): ", None),
-                                ("Calculated contrast step ratio: ", None)))
+                                ("Calculated contrast step ratio: ", None),
+                                ("[optional] Contrast series: ", [])
+                                ))
 
     frequencyDict = OrderedDict((("Number of frequency steps: ", None),
                                 ("Minimum time between frequency increments: ", None),
@@ -207,6 +209,8 @@ def buildGUI():
             if frameDict["contrast"].grid_info(): # If contrast options are active, verify text boxes
                 for key, value in contrastDict.items(): # Check for any negative entries
                     try:
+                        if key.startswith("[optional]"): # Skip optional contrast series
+                            continue
                         if value["var"].get() < 0:
                             statusLabel.config(text="ERROR: " + key + " cannot be a negative value.")
                             error = True
@@ -313,8 +317,8 @@ def buildGUI():
                     rChk.config(state='disabled')
 
             # Hide contrast controls
-            # frameDict["contrast"].grid_remove()
-            # frameDict["frequency"].grid_remove()
+            frameDict["contrast"].grid_remove()
+            frameDict["frequency"].grid_remove()
 
  ############################ DEFAULT PROTOCOLS ##########################################################################################
             entryDict["Minimum wheel revolutions for reward: "]["var"].set(10)
@@ -372,7 +376,7 @@ def buildGUI():
 
             if presetID == 5:
                 entryDict["Maximum time between wheel events (seconds): "]["var"].set(5)
-                # frameDict["contrast"].grid()
+                frameDict["contrast"].grid()
                 entryDict["Maximum wheel revolutions for reward: "]["var"].set(25)
                 metadataBox.delete('1.0', END)
                 metadataBox.insert(END, "Default frequency: " + str(entryDict["Pattern frequency for images: "]["var"].get()))
@@ -380,7 +384,7 @@ def buildGUI():
             if presetID == 6:
                 contrastDict["Maximum contrast ratio (0-100): "]["var"].set(32)
                 entryDict["Maximum time between wheel events (seconds): "]["var"].set(5)
-                # frameDict["frequency"].grid()
+                frameDict["frequency"].grid()
                 entryDict["Maximum wheel revolutions for reward: "]["var"].set(25)
                 metadataBox.delete('1.0', END)
                 metadataBox.insert(END, "Default contrast: " + str(contrastDict["Maximum contrast ratio (0-100): "]["var"].get()))
@@ -524,7 +528,7 @@ def buildGUI():
     loadPreset()
 
     # Display constrast settings
-    frameDict["contrast"].grid()
+    # frameDict["contrast"].grid()
 
     gui.mainloop() # Blocks rest of code from executing - similar to while True with update loop
 
@@ -579,7 +583,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
         # Add negative control image to frequency and contrast sets
         if(presetID in (5,6)):
             rewardList.append("SolidReward-NegativeControl.png") # Add negative control to reward list
-            contrastDict["Number of contrast steps: "]["var"].set(contrastDict["Number of contrast steps: "]["var"].get() + 1) #Add one to the number of reward images - needed for behavior protocol check ############################################################################################################################
+            contrastDict["Number of contrast steps: "]["var"].set(contrastDict["Number of contrast steps: "]["var"].get() + 1) # Add one to the number of reward images - needed for behavior protocol check ############################################################################################################################
             frequencyDict["Number of frequency steps: "]["var"].set(frequencyDict["Number of frequency steps: "]["var"].get() + 1)
 
         imageList = rewardList + controlList # generate a list of all unique images used in the protocol
