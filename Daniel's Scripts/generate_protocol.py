@@ -8,7 +8,7 @@ import psutil # Gives access to USB drive mount events
 import time # Gives access to delays and timing
 from PIL import Image, ImageDraw # Draw images and save as PNG
 from tkinter import font, Tk, Label, Entry, Frame, \
-                    Checkbutton, Text, Scrollbar, Button, DoubleVar, \
+                    Checkbutton, Text, Scrollbar, Button, DoubleVar, StringVar, \
                     IntVar, Radiobutton, Canvas, Widget # GUI library
 from tkinter.ttk import Separator
 from tkinter.constants import *
@@ -458,7 +458,10 @@ def buildGUI():
     for key, value in contrastDict.items():
         label = Label(frameDict["contrast"], text = key, anchor=W)
         label.grid(column=0, row=rowList.index(key), sticky=W)
-        var = DoubleVar(frameDict["contrast"])
+        if key == "[optional] Contrast series: ":
+            var = StringVar(frameDict["contrast"])
+        else:
+            var = DoubleVar(frameDict["contrast"])
         entry = Entry(frameDict["contrast"], width=10, textvariable=var, justify=RIGHT, disabledforeground="BLACK", validate="focus", validatecommand=lambda: testEntry(False))
         entry.grid(column=1, row=rowList.index(key), sticky=E, pady=10, padx=(0,5))
         contrastDict[key] = {"label": label, "var": var, "entry": entry}
@@ -556,15 +559,30 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
                 controlList.append(key + ".png")
             if rVar.get() == 1:
                 if frameDict["contrast"].grid_info(): # If contrast series is selected, generate a list of contrast images.
-                    minContrast = contrastDict["Minimum contrast ratio (0-100): "]["var"].get()
-                    maxContrast = contrastDict["Maximum contrast ratio (0-100): "]["var"].get()
-                    nSteps = contrastDict["Number of contrast steps: "]["var"].get()
-                    stepRatio = contrastDict["Calculated contrast step ratio: "]["var"].get()
+                    contrast_series = contrastDict["[optional] Contrast series: "]['var'].get()
+                    if contrast_series:
+                        contrast_list = re.findall(r'\b\d+\b', contrast_series)
+                        contrast_nums = [int(i) for i in contrast_list]
+                        contrast_nums.sort()
+                        for contrast in contrast_nums:
+                            imageName = key + "-contrast_" + str(contrast)
+                            rewardList = [imageName + ".png"] + rewardList
+                        # update other items in the dictionary to match the given contrast series
+                        contrastDict["Number of contrast steps: "]["var"].set(len(contrast_nums))
+                        contrastDict["Minimum contrast ratio (0-100): "]["var"].set(contrast_nums[0])
+                        contrastDict["Maximum contrast ratio (0-100): "]["var"].set(contrast_nums[-1])
+                        # step ratio is not applicable in this case so set it to 1
+                        contrastDict["Calculated contrast step ratio: "]["var"].set(1)
+                    else:
+                        # minContrast = contrastDict["Minimum contrast ratio (0-100): "]["var"].get()
+                        maxContrast = contrastDict["Maximum contrast ratio (0-100): "]["var"].get()
+                        nSteps = contrastDict["Number of contrast steps: "]["var"].get()
+                        stepRatio = contrastDict["Calculated contrast step ratio: "]["var"].get()
 
-                    for a in range(int(nSteps)):
-                        contrast = maxContrast*(stepRatio**a)
-                        imageName = key + "-contrast_" + str(round(contrast))
-                        rewardList = [imageName + ".png"] + rewardList
+                        for a in range(int(nSteps)):
+                            contrast = maxContrast*(stepRatio**a)
+                            imageName = key + "-contrast_" + str(round(contrast))
+                            rewardList = [imageName + ".png"] + rewardList
 
                 elif frameDict["frequency"].grid_info(): # If frequency series is selected, generate a list of frequency images.
                     minFreq = frequencyDict["Minimum pattern frequency (2-" + str(round(imageWidth/2)) + "): "]["var"].get()
@@ -719,6 +737,7 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
 
         # Get contrast and frequency exponentiation parameters
         maxContrast = contrastDict["Maximum contrast ratio (0-100): "]["var"].get()
+        minContrast = contrastDict["Minimum contrast ratio (0-100): "]["var"].get()
         contrastStepRatio = contrastDict["Calculated contrast step ratio: "]["var"].get()
         contrastStepCount = contrastDict["Number of contrast steps: "]["var"].get()
 
@@ -734,8 +753,10 @@ def uploadProtocol(frameDict, entryDict, contrastDict, frequencyDict, imageBarDi
 
         for image in imageList:
             if("contrast" in image.lower()): # if image is contrast type, get root type and contrast settings
-                contrastStepCount -= 1
-                contrast = maxContrast*(contrastStepRatio**contrastStepCount)
+                # contrastStepCount -= 1
+                # contrast = maxContrast*(contrastStepRatio**contrastStepCount)
+                contrast = int(re.findall(r'\d+', image)[0])
+                assert contrast >= minContrast and contrast <= maxContrast, f"Contrast value ({contrast}) out of range ({minContrast}-{maxContrast})"
                 lowInt, highInt = convertContrast(contrast)
 
             elif("frequency" in image.lower()): # if image is frequency type, get root type and frequency settings
